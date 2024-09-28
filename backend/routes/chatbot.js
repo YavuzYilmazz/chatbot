@@ -63,8 +63,6 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
       session.currentQuestionIndex++;
       await session.save();
 
-      console.log(`Updated session:`, session);
-
       if (session.currentQuestionIndex < questions.length) {
         res.status(200).json({
           message: 'Answer saved',
@@ -87,6 +85,20 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
     res.status(500).json({ message: 'Error saving answer', error });
   }
 });
+
+// Get all sessions
+router.get('/sessions', async (req, res) => {
+  try {
+    const sessions = await Session.find(); // Fetch all sessions from the database
+    res.json(sessions);
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({ message: 'Error fetching sessions', error });
+  }
+});
+
+
+
 
 // Get the current question for a specific session
 router.get('/session/:sessionId/question', async (req, res) => {
