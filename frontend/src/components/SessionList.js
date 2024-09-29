@@ -1,49 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-const SessionList = () => {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        const response = await fetch('http://localhost:3001/api/sessions'); // Adjust port if needed
-        if (!response.ok) {
-          throw new Error('Failed to fetch sessions');
-        }
-        const data = await response.json();
-        setSessions(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSessions();
-  }, []);
-
-  if (loading) {
-    return <div>Loading sessions...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
+const SessionList = ({ sessions }) => {
   return (
     <div>
-      <h2>Session List</h2>
+      <h2>Previous Sessions</h2>
       <ul>
-        {sessions.map(session => (
+        {sessions.map((session) => (
           <li key={session.sessionId}>
-            Session ID: {session.sessionId}
-            <ul>
-              {session.questions.map((q, index) => (
-                <li key={index}>{q.question}: {q.answer}</li>
-              ))}
-            </ul>
+            <Link to={`/chat/${session.sessionId}`}>
+              Session ID: {session.sessionId} - Started at: {new Date(session.start).toLocaleString()}
+            </Link>
           </li>
         ))}
       </ul>
