@@ -6,7 +6,6 @@ const multer = require('multer');
 const upload = multer();
 const router = express.Router();
 
-// Predefined questions
 const questions = [
   "What is your favorite breed of cat, and why?",
   "How do you think cats communicate with their owners?",
@@ -20,9 +19,13 @@ const questions = [
   "How would you describe the relationship between humans and cats in three words?"
 ];
 
+/**
+ * GET /sessions
+ * Fetches all existing sessions from the database.
+ */
 router.get('/sessions', async (req, res) => {
   try {
-    const sessions = await Session.find(); // Fetch all sessions from the database
+    const sessions = await Session.find();
     res.json(sessions);
   } catch (error) {
     console.error('Error fetching sessions:', error);
@@ -30,31 +33,38 @@ router.get('/sessions', async (req, res) => {
   }
 });
 
-// Start a new session and save to the database
+/**
+ * POST /session
+ * Starts a new session, generates a session ID, stores it in the database,
+ * and returns the first question.
+ */
 router.post('/session', async (req, res) => {
   try {
-    const sessionId = uuidv4(); // Create a unique session ID
+    const sessionId = uuidv4();
     const session = new Session({
       sessionId,
-      questions: [], // Initialize an empty array for questions
-      currentQuestionIndex: 0, // Start at the first question
-      start: Date.now() // Set the start time for the session
+      questions: [],
+      currentQuestionIndex: 0,
+      start: Date.now()
     });
     
-    await session.save(); // Save session to the database
+    await session.save();
 
-    // Return session ID and the first question immediately
     res.status(201).json({ sessionId, question: questions[0] }); 
   } catch (error) {
-    console.error('Error creating session:', error); // Log error to console
+    console.error('Error creating session:', error);
     res.status(500).json({ message: 'Error creating session', error });
   }
 });
 
-// Save user's answer to the current question and also save unanswered questions
+/**
+ * POST /session/:sessionId/answer
+ * Saves the user's answer to the current question in the session, 
+ * and returns the next question if available.
+ */
 router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
   const { sessionId } = req.params;
-  const { answer } = req.body; // form-data'dan gelen cevap
+  const { answer } = req.body;
 
   try {
     const session = await Session.findOne({ sessionId });
@@ -62,15 +72,13 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    // Soru daha önce kaydedilmemişse (cevapsızsa) kaydedelim
     if (session.currentQuestionIndex < questions.length) {
       const currentQuestion = questions[session.currentQuestionIndex];
 
       if (!session.questions.some(q => q.question === currentQuestion)) {
-        session.questions.push({ question: currentQuestion, answer: '' }); // Cevapsız olarak kaydet
+        session.questions.push({ question: currentQuestion, answer: '' });
       }
 
-      // Cevabı işliyoruz
       const questionToUpdate = session.questions.find(q => q.question === currentQuestion);
       questionToUpdate.answer = answer;
 
@@ -80,11 +88,11 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
       if (session.currentQuestionIndex < questions.length) {
         res.status(200).json({
           message: 'Answer saved',
-          question: questions[session.currentQuestionIndex], // Bir sonraki soruyu gönder
+          question: questions[session.currentQuestionIndex],
         });
       } else {
-        session.end = Date.now(); // Set the end time for the session
-        await session.save(); // Ensure the final session state is saved
+        session.end = Date.now();
+        await session.save();
         res.status(200).json({
           message: 'All questions answered',
           session
@@ -99,7 +107,10 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
   }
 });
 
-// Get all messages for a specific session
+/**
+ * GET /session/:sessionId/messages
+ * Retrieves all messages (questions and answers) for a specific session.
+ */
 router.get('/session/:sessionId/messages', async (req, res) => {
   const { sessionId } = req.params;
   
@@ -110,8 +121,7 @@ router.get('/session/:sessionId/messages', async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Mesajları session'dan al
-    const messages = session.questions; // Veya istediğin şekilde işle
+    const messages = session.questions;
 
     res.json({ messages });
   } catch (error) {
@@ -122,10 +132,10 @@ router.get('/session/:sessionId/messages', async (req, res) => {
 
 module.exports = router;
 
-
-
-
-// Get the current question for a specific session
+/**
+ * GET /session/:sessionId/question
+ * Retrieves the current question for the specified session.
+ */
 router.get('/session/:sessionId/question', async (req, res) => {
   const { sessionId } = req.params;
 
@@ -141,12 +151,15 @@ router.get('/session/:sessionId/question', async (req, res) => {
       res.status(200).json({ message: 'All questions answered' });
     }
   } catch (error) {
-    console.error('Error retrieving question:', error); // Log error to console
+    console.error('Error retrieving question:', error);
     res.status(500).json({ message: 'Error retrieving question', error });
   }
 });
 
-// Get all answers for a specific session
+/**
+ * GET /session/:sessionId/answers
+ * Retrieves all answers for the specified session.
+ */
 router.get('/session/:sessionId/answers', async (req, res) => {
   const { sessionId } = req.params;
 
@@ -157,12 +170,15 @@ router.get('/session/:sessionId/answers', async (req, res) => {
     }
     res.status(200).json(session.questions);
   } catch (error) {
-    console.error('Error retrieving answers:', error); // Log error to console
+    console.error('Error retrieving answers:', error);
     res.status(500).json({ message: 'Error retrieving answers', error });
   }
 });
 
-// Delete a session
+/**
+ * DELETE /session/:sessionId
+ * Deletes a specific session by its session ID.
+ */
 router.delete('/session/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
 
@@ -174,18 +190,21 @@ router.delete('/session/:sessionId', async (req, res) => {
 
     res.status(200).json({ message: 'Session deleted' });
   } catch (error) {
-    console.error('Error deleting session:', error); // Log error to console
+    console.error('Error deleting session:', error);
     res.status(500).json({ message: 'Error deleting session', error });
   }
 });
 
-// Delete all sessions
+/**
+ * DELETE /sessions
+ * Deletes all sessions from the database.
+ */
 router.delete('/sessions', async (req, res) => {
   try {
     await Session.deleteMany({});
     res.status(200).json({ message: 'All sessions deleted' });
   } catch (error) {
-    console.error('Error deleting sessions:', error); // Log error to console
+    console.error('Error deleting sessions:', error);
     res.status(500).json({ message: 'Error deleting sessions', error });
   }
 });
