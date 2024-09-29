@@ -1,25 +1,21 @@
-.chat-box {
-    border: 1px solid #ddd;
-    padding: 10px;
-    height: 200px;
-    overflow-y: auto;
-    margin-bottom: 10px;
+  .start-session-button {
+    padding: 12px 24px;
+    background-color: #00796b;
+    color: white;
+    font-size: 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background-color 0.3s ease;
   }
   
-  .chat-message {
-    margin-bottom: 5px;
+  .start-session-button:hover {
+    background-color: #004d40;
   }
   
-  .question {
-    background-color: #f1f1f1;
-    padding: 5px;
-    border-radius: 5px;
-  }
-  
-  .answer {
-    text-align: right;
-    background-color: #d1ffd6;
-    padding: 5px;
-    border-radius: 5px;
+  .button-container {
+    text-align: center;
+    margin-top: 20px;
   }
   

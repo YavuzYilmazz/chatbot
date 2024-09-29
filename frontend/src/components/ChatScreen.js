@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/ChatScreen.css';
 
 const ChatScreen = () => {
@@ -8,6 +8,7 @@ const ChatScreen = () => {
   const [userInput, setUserInput] = useState('');
   const [isNew, setIsNew] = useState(false);
   const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,7 +31,7 @@ const ChatScreen = () => {
       }
 
       const lastMessage = data.messages[data.messages.length - 1];
-      if (lastMessage && lastMessage.answer&&!isNew) {
+      if (lastMessage && lastMessage.answer && !isNew) {
         fetchNextQuestion();
       }
     } catch (error) {
@@ -96,19 +97,28 @@ const ChatScreen = () => {
     }
   };
 
+  const handleGoBack = () => {
+    navigate('/');
+    window.location.reload();
+  };
+
   return (
     <div className="chat-container">
+      <button onClick={handleGoBack} className="back-button">
+        Go Back
+      </button>
+
       <div className="chat-box">
         {messages.map((message, index) => (
           <div key={index}>
             {message.question && (
               <div className="chat-message question">
-                <strong>Bot:</strong> {message.question}
+                <strong></strong> {message.question}
               </div>
             )}
             {message.answer && (
               <div className="chat-message answer">
-                <strong>You:</strong> {message.answer}
+                <strong></strong> {message.answer}
               </div>
             )}
           </div>

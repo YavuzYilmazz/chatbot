@@ -1,9 +1,8 @@
-// src/App.js
-
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 import SessionList from './components/SessionList';
 import ChatScreen from './components/ChatScreen';
+import './App.css';
 
 const App = () => {
   const [sessions, setSessions] = useState([]);
@@ -24,7 +23,7 @@ const App = () => {
   return (
     <Router>
       <div>
-        <h1>Session Management</h1>
+        <h1>Welcome to Chatbot</h1>
         <Routes>
           <Route path="/" element={<Home sessions={sessions} />} />
           <Route path="/chat/:sessionId" element={<ChatScreen />} />
@@ -55,7 +54,11 @@ const Home = ({ sessions }) => {
 
   return (
     <div>
-      <button onClick={startNewSession}>Start New Session</button>
+      <div className="button-container">
+        <button onClick={startNewSession} className="start-session-button">
+          Start New Session
+        </button>
+      </div>
       <SessionList sessions={sessions} />
     </div>
   );
