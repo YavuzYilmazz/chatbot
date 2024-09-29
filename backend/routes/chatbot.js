@@ -125,8 +125,6 @@ module.exports = router;
 
 
 
-const sessionThrottle = {};
-
 // Get the current question for a specific session
 router.get('/session/:sessionId/question', async (req, res) => {
   const { sessionId } = req.params;
@@ -137,26 +135,14 @@ router.get('/session/:sessionId/question', async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    const now = Date.now();
-    const fetchInterval = 1000; // 1 second in milliseconds
-
-    if (sessionThrottle[sessionId]) {
-      if (now - sessionThrottle[sessionId] < fetchInterval) {
-        return;
-      }
-    }
-
-    sessionThrottle[sessionId] = now;
-
     if (session.currentQuestionIndex < questions.length) {
-      return res.status(200).json({ question: questions[session.currentQuestionIndex] });
+      res.status(200).json({ question: questions[session.currentQuestionIndex] });
     } else {
-      return res.status(200).json({ message: 'All questions answered' });
+      res.status(200).json({ message: 'All questions answered' });
     }
-
   } catch (error) {
     console.error('Error retrieving question:', error); // Log error to console
-    return res.status(500).json({ message: 'Error retrieving question', error });
+    res.status(500).json({ message: 'Error retrieving question', error });
   }
 });
 
