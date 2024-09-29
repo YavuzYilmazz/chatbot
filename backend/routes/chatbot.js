@@ -20,6 +20,16 @@ const questions = [
   "How would you describe the relationship between humans and cats in three words?"
 ];
 
+router.get('/sessions', async (req, res) => {
+  try {
+    const sessions = await Session.find(); // Fetch all sessions from the database
+    res.json(sessions);
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({ message: 'Error fetching sessions', error });
+  }
+});
+
 // Start a new session and save to the database
 router.post('/session', async (req, res) => {
   try {
@@ -41,7 +51,7 @@ router.post('/session', async (req, res) => {
   }
 });
 
-// Save user's answer to the current question
+// Save user's answer to the current question and also save unanswered questions
 router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
   const { sessionId } = req.params;
   const { answer } = req.body; // form-data'dan gelen cevap
@@ -52,13 +62,17 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    // Check if the current question index is valid
+    // Soru daha önce kaydedilmemişse (cevapsızsa) kaydedelim
     if (session.currentQuestionIndex < questions.length) {
       const currentQuestion = questions[session.currentQuestionIndex];
-      session.questions.push({ 
-        question: currentQuestion, 
-        answer 
-      });
+
+      if (!session.questions.some(q => q.question === currentQuestion)) {
+        session.questions.push({ question: currentQuestion, answer: '' }); // Cevapsız olarak kaydet
+      }
+
+      // Cevabı işliyoruz
+      const questionToUpdate = session.questions.find(q => q.question === currentQuestion);
+      questionToUpdate.answer = answer;
 
       session.currentQuestionIndex++;
       await session.save();
@@ -66,8 +80,7 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
       if (session.currentQuestionIndex < questions.length) {
         res.status(200).json({
           message: 'Answer saved',
-          question: questions[session.currentQuestionIndex],
-          answer
+          question: questions[session.currentQuestionIndex], // Bir sonraki soruyu gönder
         });
       } else {
         session.end = Date.now(); // Set the end time for the session
@@ -86,19 +99,33 @@ router.post('/session/:sessionId/answer', upload.none(), async (req, res) => {
   }
 });
 
-// Get all sessions
-router.get('/sessions', async (req, res) => {
+// Get all messages for a specific session
+router.get('/session/:sessionId/messages', async (req, res) => {
+  const { sessionId } = req.params;
+  
   try {
-    const sessions = await Session.find(); // Fetch all sessions from the database
-    res.json(sessions);
+    const session = await Session.findOne({ sessionId });
+        
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Mesajları session'dan al
+    const messages = session.questions; // Veya istediğin şekilde işle
+
+    res.json({ messages });
   } catch (error) {
-    console.error('Error fetching sessions:', error);
-    res.status(500).json({ message: 'Error fetching sessions', error });
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: 'Error fetching messages', error });
   }
 });
 
+module.exports = router;
 
 
+
+
+const sessionThrottle = {};
 
 // Get the current question for a specific session
 router.get('/session/:sessionId/question', async (req, res) => {
@@ -110,14 +137,26 @@ router.get('/session/:sessionId/question', async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    if (session.currentQuestionIndex < questions.length) {
-      res.status(200).json({ question: questions[session.currentQuestionIndex] });
-    } else {
-      res.status(200).json({ message: 'All questions answered' });
+    const now = Date.now();
+    const fetchInterval = 1000; // 1 second in milliseconds
+
+    if (sessionThrottle[sessionId]) {
+      if (now - sessionThrottle[sessionId] < fetchInterval) {
+        return;
+      }
     }
+
+    sessionThrottle[sessionId] = now;
+
+    if (session.currentQuestionIndex < questions.length) {
+      return res.status(200).json({ question: questions[session.currentQuestionIndex] });
+    } else {
+      return res.status(200).json({ message: 'All questions answered' });
+    }
+
   } catch (error) {
     console.error('Error retrieving question:', error); // Log error to console
-    res.status(500).json({ message: 'Error retrieving question', error });
+    return res.status(500).json({ message: 'Error retrieving question', error });
   }
 });
 
